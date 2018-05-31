@@ -1,25 +1,31 @@
+
+/*
+changes that had to make 
+*/
+
+
 #include "ntpUtils.h"
 #include "authUtils.h"
 
 #include <FirebaseArduino.h>
 #include <DHT.h>
 
-#define DHTPIN D2
+#define DHTPIN D4
 #define FANPIN D6
 #define LIGHTPIN D5
 #define SENSORPIN D8
-#define DHTTYPE DHT11
-#define DELAY_TIME_TO_SEND  360 // 5 min
+#define DHTTYPE DHT22
+#define DELAY_TIME_TO_SEND  10 // 5 min
 #define TABLE_LEITURA "leitura"
 #define TABLE_MOTION "motion"
-#define CLIENT_EMAIL "well.oliveira.snt@gmail.com"
-#define DEVICE_PATH "/devices/mkW3jbNvyKMzC8FLODaQd7GAum02/"
+#define CLIENT_EMAIL "manojkumar"
+#define DEVICE_PATH "/devices/1/"
 
 DHT dht(DHTPIN, DHTTYPE);
 
-StaticJsonBuffer<2000> jsonBuffer;
+StaticJsonBuffer<4000> jsonBuffer;
 JsonObject &leitura = jsonBuffer.createObject();
-JsonObject &motion = jsonBuffer.createObject();
+//JsonObject &motion = jsonBuffer.createObject();
 
 int count = 15000;
 bool motionSensorRead = false;
@@ -43,8 +49,8 @@ void setup() {
     pinMode(FANPIN, OUTPUT);
     pinMode(LIGHTPIN, OUTPUT);
     pinMode(SENSORPIN, INPUT);
-    motionSensorRead = !digitalRead(SENSORPIN);
-    digitalWrite(LED_BUILTIN, !Firebase.getBool(String(DEVICE_PATH) + "light"));
+    //motionSensorRead = !digitalRead(SENSORPIN);
+    //digitalWrite(LED_BUILTIN, !Firebase.getBool(String(DEVICE_PATH) + "light"));
 
 }
 
@@ -55,9 +61,9 @@ inline String getErrorString(String table) {
 void inline readMotionSensorAndSendToFirebase() {
     if (digitalRead(SENSORPIN) != motionSensorRead) {
         motionSensorRead = digitalRead(SENSORPIN);
-        motion["state"] = String(motionSensorRead);
-        motion["date"] = getEpoch();
-        Firebase.push(TABLE_MOTION, motion);
+        //motion["state"] = String(motionSensorRead);
+        //motion["date"] = getEpoch();
+        //Firebase.push(TABLE_MOTION, motion);
         Serial.println("sensor=" + String(motionSensorRead));
         delay(1000);
     }
@@ -69,12 +75,12 @@ void inline readMotionSensorAndSendToFirebase() {
     }
 }
 
-void inline setLeitura(String temperatura, String umidade, String cliente, String data, String motion) {
-    leitura["temperatura"] = temperatura;
-    leitura["umidade"] = umidade;
+void inline setLeitura(String temperatura, String umidade, String cliente, String data) {
+    leitura["temp"] = temperatura;
+    leitura["hum"] = umidade;
     leitura["cliente"] = cliente;
     leitura["data"] = data;
-    leitura["motion"] = motion;
+    leitura["pH"] = 7;
 }
 
 void inline readDataToSend() {
@@ -82,24 +88,26 @@ void inline readDataToSend() {
     String umid = String(dht.readHumidity());
     String cliente = CLIENT_EMAIL;
     String data = getEpoch();
-    String motion = String(digitalRead(SENSORPIN));
+    //String motion = String(digitalRead(SENSORPIN));
     delay(1000);
-    setLeitura(temperatura, umid, cliente, data, motion);
+    setLeitura(temperatura, umid, cliente, data);
     Serial.println(
-            "temp=" + temperatura + " umid=" + umid + " clnt=" + cliente + " dateTime=" + data + " motion=" + motion);
+            "temp=" + temperatura + " hummidity=" + umid + " email=" + cliente + " dateTime=" + data + " ");
 }
 
 void inline readLeituraAndSendToFirebase() {
+    
     readDataToSend();
 
     if (count > DELAY_TIME_TO_SEND) {
 
-        if (leitura["temperatura"] == "nan" || leitura["umidade"] == "nan" || getEpoch().toInt() <= 1000) {
+        if (leitura["temp"] == "nan" || leitura["hum"] == "nan" ) {
+            Serial.println("fuckedUp");
             return;
         }
 
         count = 0;
-        Firebase.push(TABLE_LEITURA, leitura);
+        Firebase.push("D1", leitura); // 
     }
 
     if (Firebase.failed()) {
@@ -131,9 +139,9 @@ void inline updateCountAndPrint() {
 }
 
 void loop() {
-    updateNtp();
-    readMotionSensorAndSendToFirebase();
+    //updateNtp();
+    //readMotionSensorAndSendToFirebase();
     readLeituraAndSendToFirebase();
-    updateLighAndFan();
+    //updateLighAndFan();
     updateCountAndPrint();
 }
