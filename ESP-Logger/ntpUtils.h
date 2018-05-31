@@ -12,7 +12,7 @@ WiFiUDP udp;
 const char* ntpServerName = "time.nist.gov";
 IPAddress timeServer;
 
-const int timeZone = -4;
+const int timeZone = 8;
 
 /*-------- NTP code ----------*/
 byte packetBuffer[NTP_PACKET_SIZE]; //buffer to hold incoming & outgoing packets
